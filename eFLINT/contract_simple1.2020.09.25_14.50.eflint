@@ -1,0 +1,125 @@
+#
+
+Fact seller 
+Fact buyer 
+Fact product 
+Fact amount Identified by Int
+Fact sale Identified by Int
+Fact contract Identified by seller * buyer * product * amount * sale
+
+Fact product-delivered Identified by product
+Fact product-received Identified by product
+Fact product-accepted Identified by product
+Fact product-rejected Identified by product
+
+Fact invoice Identified by contract*product-accepted
+
+Duty deliver-product-duty
+  Holder seller
+  Claimant buyer
+
+Duty pay-duty
+  Holder buyer
+  Claimant seller
+
+// ACT 1 START CONTRACT BETWEEN SELLER BUYER
+Act start-contract
+ Actor seller
+ Recipient buyer
+ Related to product, amount, sale
+ Creates 
+  contract(seller, buyer, product, amount, sale),
+  deliver-product-duty(seller,buyer)  
+
+//ACT 2 SELLER DELIVERS PRODUCT TO BUYER
+Act deliver-product
+ Actor seller
+ Recipient buyer
+ Related to product
+ Conditioned by
+  contract(seller,buyer,product,amount,sale)
+ Creates
+  product-delivered(product)
+
+//ACT 3 RECEIVE DELIVERY
+Act receive-product
+ Actor buyer
+ Recipient seller
+ Related to product
+ Conditioned by 
+  product-delivered(product)
+ Creates
+  product-received(product)
+ Terminates
+  deliver-product-duty(seller,buyer)
+
+//ACT 4 BUYER ACCEPTS PRODUCT IF NO DEFICIENCIES
+Act accept-product
+ Actor buyer
+ Recipient seller
+ Related to product
+ Conditioned by
+  product-received(product)
+ Creates
+  product-accepted(product),
+  pay-duty(buyer,seller)
+  
+//ACT 5 BUYER REJECTS PRODUCT IF DEFICIENCIES
+Act reject-product
+ Actor buyer
+ Recipient seller
+ Related to product
+ Conditioned by
+  product-received(product)
+ Creates
+  product-rejected(product)
+
+// ACT 6 SELLER SENDS BUYER INVOICE
+Act send-invoice
+ Actor seller
+ Recipient buyer
+ Related to contract
+ Conditioned by
+  contract(seller,buyer,product,amount,sale) &&
+  product-accepted(product)
+ Creates 
+  invoice(contract,product-accepted(product))
+
+//ACT 7 BUYER TRANSFERS PAYMENT
+Act transfer-payment
+ Actor buyer
+ Recipient seller
+ Related to invoice
+ Conditioned by
+  invoice(contract,product-accepted(product))
+ Terminates
+  pay-duty(buyer,seller)
+
+##
+
+Fact seller Identified by "Alice"
+Fact buyer Identified by "Bob"
+Fact product Identified by "iPhone"
+Fact amount Identified by 9
+Fact sale Identified by 1
+
+###
+
+start-contract.
+deliver-product.
+receive-product.
+accept-product.
+//reject-product.
+send-invoice.
+transfer-payment.
+
+####
+
+start-contract("Alice","Bob","iPhone",9,1).
+deliver-product("Alice","Bob","iPhone").
+receive-product("Bob","Alice","iPhone").
+//reject-product("Bob","Alice","iPhone").
+accept-product("Bob","Alice","iPhone").
+
+send-invoice("Alice","Bob",contract("Alice","Bob","iPhone",9,1)).
+transfer-payment("Bob","Alice",invoice(contract("Alice","Bob","iPhone",9,1),product-accepted("iPhone"))).
